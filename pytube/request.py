@@ -4,17 +4,42 @@ import json
 import logging
 import re
 import socket
+import ssl
+import random
 from functools import lru_cache
 from urllib import parse
-from urllib.error import URLError
+from urllib.error import URLError, HTTPError
 from urllib.request import Request, urlopen
 
 from pytube.exceptions import RegexMatchError, MaxRetriesExceeded
-from pytube.helpers import regex_search
+from pytube.helpers import regex_search, make_fronted_url
 
 logger = logging.getLogger(__name__)
 default_range_size = 9437184  # 9MB
 
+unverified_context = ssl._create_unverified_context()
+_orig_getaddrinfo = socket.getaddrinfo
+_googlevideo_com_ips = [
+    "74.125.104.74", #?
+    "74.125.162.106", #5
+    "172.217.20.196", #?
+    "172.217.133.233", #4
+    "173.194.187.198", #1
+]
+_ip_retries = 10
+_current_try = 0
+
+def _patched_getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
+    res = _orig_getaddrinfo(host, port, family, type, proto, flags)
+    if "mail.google.com" in host:
+        addr = random.choice(_googlevideo_com_ips)
+        res = [list(res[0])]
+        res[0][4] = (addr, 443)
+        print("Injected", addr)
+
+    return res
+
+socket.getaddrinfo = _patched_getaddrinfo
 
 def _execute_request(
     url,
@@ -23,7 +48,9 @@ def _execute_request(
     data=None,
     timeout=socket._GLOBAL_DEFAULT_TIMEOUT
 ):
-    base_headers = {"User-Agent": "Mozilla/5.0", "accept-language": "en-US,en"}
+    url, host = make_fronted_url(url)
+    print(url, method, headers, data, host)
+    base_headers = {"User-Agent": "Mozilla/5.0", "accept-language": "en-US,en", "Host" : host}
     if headers:
         base_headers.update(headers)
     if data:
@@ -34,7 +61,16 @@ def _execute_request(
         request = Request(url, headers=base_headers, method=method, data=data)
     else:
         raise ValueError("Invalid URL")
-    return urlopen(request, timeout=timeout)  # nosec
+
+    res = None
+    while True:
+        try:
+            res = urlopen(request, timeout=timeout, context = unverified_context)  # nosec
+            break
+        except (HTTPError):
+            pass
+
+    return res
 
 
 def get(url, extra_headers=None, timeout=socket._GLOBAL_DEFAULT_TIMEOUT):
