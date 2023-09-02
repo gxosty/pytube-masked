@@ -66,7 +66,7 @@ def _patched_getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
         res[0][4] = (addr, 443)
     elif host.startswith("rr"):
         res = [list(res[0])]
-        addr = _get_dns_ip(host)
+        addr = get_dns_ip(host)
         res[0][4] = (addr, 443)
 
     return res
