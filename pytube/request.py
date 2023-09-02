@@ -18,28 +18,62 @@ logger = logging.getLogger(__name__)
 default_range_size = 9437184  # 9MB
 
 unverified_context = ssl._create_unverified_context()
+_dns_resolver = ("google-public-dns-a.google.com", "216.239.36.36") # Traditional IP addresses (8.8.8.8 & 8.8.8.4) can be blocked
 _orig_getaddrinfo = socket.getaddrinfo
-_googlevideo_com_ips = [
-    "74.125.104.74", #?
-    "74.125.162.106", #5
-    "172.217.20.196", #?
-    "172.217.133.233", #4
-    "173.194.187.198", #1
-]
-_ip_retries = 10
-_current_try = 0
+
+
+def _read_ip_from_dns_answer(json_data):
+    ip = json_data["Question"][0]["name"]
+    search = True
+
+    while search:
+        search = False
+        for answer in json_data["Answer"]:
+            if ip == answer["name"]:
+                ip = answer["data"]
+                search = True
+
+    return ip
+
+
+@lru_cache
+def get_dns_ip(domain_name):
+    """Resolve a DNS Name using DNS-over-HTTP with Domain Fronting
+
+    :param str domain_name:
+        Domain Name to resolve
+    :rtype: str
+    :returns:
+        IP Address of associated DNS Name
+    """
+    request = Request(
+        "https://mail.google.com/resolve?name={}".format(domain_name),
+        headers = {
+            "User-Agent": "Mozilla/5.0",
+            "accept-language": "en-US,en",
+            "Host" : _dns_resolver[0]
+        }
+    )
+    res = urlopen(request, context = unverified_context)
+    return _read_ip_from_dns_answer(json.loads(res.read().decode("utf-8")))
+
 
 def _patched_getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
     res = _orig_getaddrinfo(host, port, family, type, proto, flags)
-    if "mail.google.com" in host:
-        addr = random.choice(_googlevideo_com_ips)
+    if host.startswith("mail"):
         res = [list(res[0])]
+        addr = _dns_resolver[1]
         res[0][4] = (addr, 443)
-        print("Injected", addr)
+    elif host.startswith("rr"):
+        res = [list(res[0])]
+        addr = _get_dns_ip(host)
+        res[0][4] = (addr, 443)
 
     return res
 
+
 socket.getaddrinfo = _patched_getaddrinfo
+
 
 def _execute_request(
     url,
@@ -48,17 +82,18 @@ def _execute_request(
     data=None,
     timeout=socket._GLOBAL_DEFAULT_TIMEOUT
 ):
-    url, host = make_fronted_url(url)
-    print(url, method, headers, data, host)
-    base_headers = {"User-Agent": "Mozilla/5.0", "accept-language": "en-US,en", "Host" : host}
+    front_url, host = make_fronted_url(url)
+    base_headers = {"User-Agent": "Mozilla/5.0", "accept-language": "en-US,en"}
+    if host is not None:
+        base_headers["Host"] = host
     if headers:
         base_headers.update(headers)
     if data:
         # encode data for request
         if not isinstance(data, bytes):
             data = bytes(json.dumps(data), encoding="utf-8")
-    if url.lower().startswith("http"):
-        request = Request(url, headers=base_headers, method=method, data=data)
+    if front_url.lower().startswith("http"):
+        request = Request(front_url, headers=base_headers, method=method, data=data)
     else:
         raise ValueError("Invalid URL")
 

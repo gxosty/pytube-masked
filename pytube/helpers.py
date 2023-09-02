@@ -336,9 +336,10 @@ def create_mock_html_json(vid_id) -> Dict[str, Any]:
 
 def make_fronted_url(url): # 74.125.104.74 googlevideo.com
     if "googlevideo.com" in url:
-        p = re.compile("^https://([a-z0-9\\-\\.]+?\\.googlevideo\\.com)(/.+)")
-        found = p.search(url)
-        host, path = found[1], found[2]
-        return "https://mail.google.com" + path, host
+        return url, None
+        # p = re.compile("^https://([a-z0-9\\-\\.]+?\\.googlevideo\\.com)(/.+)")
+        # found = p.search(url)
+        # host, path = found[1], found[2]
+        # return "https://mail.google.com" + path, host
 
     return re.sub("youtube\\.com", "google.com", url), "www.youtube.com"
