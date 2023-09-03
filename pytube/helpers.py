@@ -334,12 +334,14 @@ def create_mock_html_json(vid_id) -> Dict[str, Any]:
 
     return html_data
 
-def make_fronted_url(url): # 74.125.104.74 googlevideo.com
-    if "googlevideo.com" in url:
-        return url, None
-        # p = re.compile("^https://([a-z0-9\\-\\.]+?\\.googlevideo\\.com)(/.+)")
-        # found = p.search(url)
-        # host, path = found[1], found[2]
-        # return "https://mail.google.com" + path, host
+def split_redirector_url(url):
+    p = re.compile("^https://([a-z0-9\\-\\.]+?\\.googlevideo\\.com)(/.+)")
+    found = p.search(url)
+    return found[1], found[2]
 
-    return re.sub("youtube\\.com", "google.com", url), "www.youtube.com"
+def make_fronted_url(url): # googlevideo.com
+    if "googlevideo.com" in url:
+        host, path = split_redirector_url(url)
+        return "https://www.google.com" + path, host
+
+    return re.sub("(?:[a-z]*?\\.)?youtube\\.com", "www.google.com", url), "www.youtube.com"

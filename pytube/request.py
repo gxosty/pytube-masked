@@ -6,17 +6,19 @@ import re
 import socket
 import ssl
 import random
+import threading # to get thread ids
 from functools import lru_cache
 from urllib import parse
 from urllib.error import URLError, HTTPError
 from urllib.request import Request, urlopen
 
 from pytube.exceptions import RegexMatchError, MaxRetriesExceeded
-from pytube.helpers import regex_search, make_fronted_url
+from pytube.helpers import regex_search, make_fronted_url, split_redirector_url
 
 logger = logging.getLogger(__name__)
 default_range_size = 9437184  # 9MB
 
+last_url = {} # used to store the last url per thread for poisoning 'socket.getaddrinfo'
 unverified_context = ssl._create_unverified_context()
 _dns_resolver = ("google-public-dns-a.google.com", "216.239.36.36") # Traditional IP addresses (8.8.8.8 & 8.8.8.4) can be blocked
 _orig_getaddrinfo = socket.getaddrinfo
@@ -46,31 +48,34 @@ def get_dns_ip(domain_name):
     :returns:
         IP Address of associated DNS Name
     """
+
+    url = "https://www.google.com/resolve?name={}".format(domain_name)
     request = Request(
-        "https://mail.google.com/resolve?name={}".format(domain_name),
+        url,
         headers = {
             "User-Agent": "Mozilla/5.0",
             "accept-language": "en-US,en",
             "Host" : _dns_resolver[0]
         }
     )
+    last_url[threading.get_ident()] = url
     res = urlopen(request, context = unverified_context)
     return _read_ip_from_dns_answer(json.loads(res.read().decode("utf-8")))
 
 
 def _patched_getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
     res = _orig_getaddrinfo(host, port, family, type, proto, flags)
-    if host.startswith("mail"):
+    url = last_url[threading.get_ident()]
+    if "/resolve" in url:
         res = [list(res[0])]
         addr = _dns_resolver[1]
         res[0][4] = (addr, 443)
-    elif host.startswith("rr"):
+    elif "googlevideo.com" in url:
         res = [list(res[0])]
-        addr = get_dns_ip(host)
+        addr = get_dns_ip(split_redirector_url(url)[0])
         res[0][4] = (addr, 443)
 
     return res
-
 
 socket.getaddrinfo = _patched_getaddrinfo
 
@@ -82,6 +87,7 @@ def _execute_request(
     data=None,
     timeout=socket._GLOBAL_DEFAULT_TIMEOUT
 ):
+    last_url[threading.get_ident()] = url
     front_url, host = make_fronted_url(url)
     base_headers = {"User-Agent": "Mozilla/5.0", "accept-language": "en-US,en"}
     if host is not None:
@@ -97,14 +103,7 @@ def _execute_request(
     else:
         raise ValueError("Invalid URL")
 
-    res = None
-    while True:
-        try:
-            res = urlopen(request, timeout=timeout, context = unverified_context)  # nosec
-            break
-        except (HTTPError):
-            pass
-
+    res = urlopen(request, timeout=timeout, context = unverified_context)  # nosec
     return res
 
 
