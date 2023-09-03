@@ -1,4 +1,4 @@
-# pytube
+# pytube-masked
 
 [*pytube*](https://github.com/pytube/pytube) is a genuine, lightweight, dependency-free Python library (and command-line utility) for downloading YouTube videos.
 This repository is fork of [*pytube*](https://github.com/pytube/pytube) and aims to circumvent censorship where YouTube is blocked. The idea behind it is to use [Domain Fronting](https://en.wikipedia.org/wiki/Domain_fronting), probably the most optimal choice to access YouTube.
