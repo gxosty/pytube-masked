@@ -16,15 +16,15 @@ with open(os.path.join(here, "pytube", "version.py")) as fp:
 setup(
     name="pytube-masked",
     version=__version__,  # noqa: F821
-    author="Ronnie Ghose, Taylor Fox Dahlin, Nick Ficano",
-    author_email="hey@pytube.io",
+    author="Ronnie Ghose, Taylor Fox Dahlin, Nick Ficano, gxost",
+    author_email="6321b5arsi@gmail.com",
     packages=["pytube", "pytube.contrib"],
     package_data={"": ["LICENSE"],},
-    url="https://github.com/pytube/pytube",
+    url="https://github.com/gxosty/pytube-masked",
     license="The Unlicense (Unlicense)",
     entry_points={
         "console_scripts": [
-            "pytube = pytube.cli:main"],},
+            "pytubem = pytube.cli:main"],},
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Environment :: Console",
@@ -51,7 +51,7 @@ setup(
     zip_safe=True,
     python_requires=">=3.7",
     project_urls={
-        "Bug Reports": "https://github.com/pytube/pytube/issues",
+        "Bug Reports": "https://github.com/gxosty/pytube/issues",
         "Read the Docs": "https://pytube.io",
     },
     keywords=["youtube", "download", "video", "stream",],
