@@ -65,7 +65,11 @@ def get_dns_ip(domain_name):
 
 def _patched_getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
     res = _orig_getaddrinfo(host, port, family, type, proto, flags)
-    url = last_url[threading.get_ident()]
+    url = last_url.get(threading.get_ident(), None)
+
+    if not url:
+        return res
+
     if "/resolve" in url:
         res = [list(res[0])]
         addr = _dns_resolver[1]
