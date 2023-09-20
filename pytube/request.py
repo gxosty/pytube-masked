@@ -103,6 +103,7 @@ def _execute_request(
         if not isinstance(data, bytes):
             data = bytes(json.dumps(data), encoding="utf-8")
     if front_url.lower().startswith("http"):
+        logging.debug(f"-> Url: {front_url}")
         request = Request(front_url, headers=base_headers, method=method, data=data)
     else:
         raise ValueError("Invalid URL")
@@ -216,8 +217,7 @@ def stream(
     file_size: int = default_range_size  # fake filesize to start
     downloaded = 0
     while downloaded < file_size:
-        stop_pos = min(downloaded + default_range_size, file_size) - 1
-        range_header = f"bytes={downloaded}-{stop_pos}"
+        # stop_pos = min(downloaded + default_range_size, file_size) - 1
         tries = 0
 
         # Attempt to make the request multiple times as necessary.
@@ -229,7 +229,7 @@ def stream(
             # Try to execute the request, ignoring socket timeouts
             try:
                 response = _execute_request(
-                    url + f"&range={downloaded}-{stop_pos}",
+                    url,
                     method="GET",
                     timeout=timeout
                 )
@@ -250,17 +250,12 @@ def stream(
 
         if file_size == default_range_size:
             try:
-                resp = _execute_request(
-                    url + f"&range={0}-{99999999999}",
-                    method="GET",
-                    timeout=timeout
-                )
-                content_range = resp.info()["Content-Length"]
+                content_range = response.info()["Content-Length"]
                 file_size = int(content_range)
             except (KeyError, IndexError, ValueError) as e:
                 logger.error(e)
         while True:
-            chunk = response.read()
+            chunk = response.read(32768) # 32KB
             if not chunk:
                 break
             downloaded += len(chunk)

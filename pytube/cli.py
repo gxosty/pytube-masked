@@ -66,6 +66,10 @@ def _perform_args_on_youtube(
         display_streams(youtube)
     if args.build_playback_report:
         build_playback_report(youtube)
+    if args.target:
+         download_highest_resolution_progressive(
+             youtube=youtube, resolution="highest", target=args.target
+         )
     if args.itag:
         download_by_itag(youtube=youtube, itag=args.itag, target=args.target)
     if args.caption_code:
@@ -214,7 +218,7 @@ def display_progress_bar(
     Example:
     ~~~~~~~~
     PSY - GANGNAM STYLE(강남스타일) MV.mp4
-    ↳ |███████████████████████████████████████| 100.0%
+    ↳ |███████████████████████████████████████| 100.0% / 24MB
 
     :param int bytes_received:
         The delta between the total file size (bytes) and bytes already
@@ -234,7 +238,7 @@ def display_progress_bar(
     remaining = max_width - filled
     progress_bar = ch * filled + " " * remaining
     percent = round(100.0 * bytes_received / float(filesize), 1)
-    text = f" ↳ |{progress_bar}| {percent}%\r"
+    text = f" ↳ |{progress_bar}| {percent}% / {filesize // 1048576}MB\r"
     sys.stdout.write(text)
     sys.stdout.flush()
 
@@ -253,8 +257,7 @@ def _download(
     target: Optional[str] = None,
     filename: Optional[str] = None,
 ) -> None:
-    filesize_megabytes = stream.filesize // 1048576
-    print(f"{filename or stream.default_filename} | {filesize_megabytes} MB")
+    print(f"{filename or stream.default_filename}")
     file_path = stream.get_file_path(filename=filename, output_path=target)
     if stream.exists_at_path(file_path):
         print(f"Already downloaded at:\n{file_path}")
