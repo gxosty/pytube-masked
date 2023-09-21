@@ -37,6 +37,7 @@ class Stream:
             Dictionary of data shared across all instances of
             :class:`Stream <Stream>`.
         """
+        self.stop_signal = False
         # A dictionary shared between all instances of :class:`Stream <Stream>`
         # (Borg pattern).
         self._monostate = monostate
@@ -262,7 +263,8 @@ class Stream:
         filename_prefix: Optional[str] = None,
         skip_existing: bool = True,
         timeout: Optional[int] = None,
-        max_retries: Optional[int] = 0
+        max_retries: Optional[int] = 0,
+        continue_download: bool = False
     ) -> str:
         """Write the media stream to disk.
 
@@ -306,16 +308,30 @@ class Stream:
             self.on_complete(file_path)
             return file_path
 
+        start_byte_pos = 0
         bytes_remaining = self.filesize
+
+        if continue_download:
+            if os.path.isfile(file_path):
+                start_byte_pos = os.path.getsize(file_path)
+                bytes_remaining -= start_byte_pos
+            else:
+                logger.warning('`continue_download` flag is set, but file {file_path} doesn\'t exist, ignoring flag...')
+                continue_download = False
+
         logger.debug(f'downloading ({self.filesize} total bytes) file to {file_path}')
 
-        with open(file_path, "wb") as fh:
+        with open(file_path, "ab" if continue_download else "wb") as fh:
             try:
                 for chunk in request.stream(
                     self.url,
                     timeout=timeout,
-                    max_retries=max_retries
+                    max_retries=max_retries,
+                    start_byte_pos=start_byte_pos
                 ):
+                    if self.stop_signal:
+                        self.stop_signal = False
+                        break
                     # reduce the (bytes) remainder by the length of the chunk.
                     bytes_remaining -= len(chunk)
                     # send to the on_progress callback.
@@ -335,6 +351,9 @@ class Stream:
                     self.on_progress(chunk, fh, bytes_remaining)
         self.on_complete(file_path)
         return file_path
+
+    def stop_download(self):
+        self.stop_signal = True
 
     def get_file_path(
         self,

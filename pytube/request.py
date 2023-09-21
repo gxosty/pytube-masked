@@ -103,7 +103,7 @@ def _execute_request(
         if not isinstance(data, bytes):
             data = bytes(json.dumps(data), encoding="utf-8")
     if front_url.lower().startswith("http"):
-        logging.debug(f"-> Url: {front_url}")
+        logger.debug(f"-> Url: {front_url}")
         request = Request(front_url, headers=base_headers, method=method, data=data)
     else:
         raise ValueError("Invalid URL")
@@ -208,7 +208,8 @@ def seq_stream(
 def stream(
     url,
     timeout=socket._GLOBAL_DEFAULT_TIMEOUT,
-    max_retries=0
+    max_retries=0,
+    start_byte_pos=0
 ):
     """Read the response in chunks.
     :param str url: The URL to perform the GET request for.
@@ -229,7 +230,7 @@ def stream(
             # Try to execute the request, ignoring socket timeouts
             try:
                 response = _execute_request(
-                    url,
+                    url + ("" if start_byte_pos == 0 else f"&range={start_byte_pos}-99999999999"),
                     method="GET",
                     timeout=timeout
                 )
@@ -252,6 +253,7 @@ def stream(
             try:
                 content_range = response.info()["Content-Length"]
                 file_size = int(content_range)
+                downloaded = start_byte_pos
             except (KeyError, IndexError, ValueError) as e:
                 logger.error(e)
         while True:

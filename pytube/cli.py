@@ -68,21 +68,21 @@ def _perform_args_on_youtube(
         build_playback_report(youtube)
     if args.target:
          download_highest_resolution_progressive(
-             youtube=youtube, resolution="highest", target=args.target
+             youtube=youtube, resolution="highest", target=args.target, continue_download=args.continue_download
          )
     if args.itag:
-        download_by_itag(youtube=youtube, itag=args.itag, target=args.target)
+        download_by_itag(youtube=youtube, itag=args.itag, target=args.target, continue_download=args.continue_download)
     if args.caption_code:
         download_caption(
             youtube=youtube, lang_code=args.caption_code, target=args.target
         )
     if args.resolution:
         download_by_resolution(
-            youtube=youtube, resolution=args.resolution, target=args.target
+            youtube=youtube, resolution=args.resolution, target=args.target, continue_download=args.continue_download
         )
     if args.audio:
         download_audio(
-            youtube=youtube, filetype=args.audio, target=args.target
+            youtube=youtube, filetype=args.audio, target=args.target, continue_download=args.continue_download
         )
     if args.ffmpeg:
         ffmpeg_process(
@@ -157,6 +157,15 @@ def _parse_args(
         help=(
             "The output directory for the downloaded stream. "
             "Default is current working directory"
+        ),
+    )
+    parser.add_argument(
+        "-co",
+        "--continue",
+        action="store_true",
+        dest="continue_download",
+        help=(
+            "Continue downloading if file still exists and incomplete"
         ),
     )
     parser.add_argument(
@@ -256,6 +265,7 @@ def _download(
     stream: Stream,
     target: Optional[str] = None,
     filename: Optional[str] = None,
+    continue_download: bool = False
 ) -> None:
     print(f"{filename or stream.default_filename}")
     file_path = stream.get_file_path(filename=filename, output_path=target)
@@ -263,7 +273,11 @@ def _download(
         print(f"Already downloaded at:\n{file_path}")
         return
 
-    stream.download(output_path=target, filename=filename)
+    try:
+        stream.download(output_path=target, filename=filename, continue_download=continue_download)
+    except (KeyboardInterrupt):
+        sys.stdout.write("\nDownload Stopped")
+
     sys.stdout.write("\n")
 
 
@@ -406,7 +420,7 @@ def _ffmpeg_downloader(
 
 
 def download_by_itag(
-    youtube: YouTube, itag: int, target: Optional[str] = None
+    youtube: YouTube, itag: int, target: Optional[str] = None, continue_download: bool = False
 ) -> None:
     """Start downloading a YouTube video.
 
@@ -427,13 +441,13 @@ def download_by_itag(
     youtube.register_on_progress_callback(on_progress)
 
     try:
-        _download(stream, target=target)
+        _download(stream, target=target, continue_download=continue_download)
     except KeyboardInterrupt:
         sys.exit()
 
 
 def download_by_resolution(
-    youtube: YouTube, resolution: str, target: Optional[str] = None
+    youtube: YouTube, resolution: str, target: Optional[str] = None, continue_download: bool = False
 ) -> None:
     """Start downloading a YouTube video.
 
@@ -455,13 +469,13 @@ def download_by_resolution(
     youtube.register_on_progress_callback(on_progress)
 
     try:
-        _download(stream, target=target)
+        _download(stream, target=target, continue_download=continue_download)
     except KeyboardInterrupt:
         sys.exit()
 
 
 def download_highest_resolution_progressive(
-    youtube: YouTube, resolution: str, target: Optional[str] = None
+    youtube: YouTube, resolution: str, target: Optional[str] = None, continue_download: bool = False
 ) -> None:
     """Start downloading the highest resolution progressive stream.
 
@@ -479,7 +493,7 @@ def download_highest_resolution_progressive(
         print(f"No video streams available: {err}")
     else:
         try:
-            _download(stream, target=target)
+            _download(stream, target=target, continue_download=continue_download)
         except KeyboardInterrupt:
             sys.exit()
 
@@ -527,7 +541,7 @@ def download_caption(
 
 
 def download_audio(
-    youtube: YouTube, filetype: str, target: Optional[str] = None
+    youtube: YouTube, filetype: str, target: Optional[str] = None, continue_download: bool = False
 ) -> None:
     """
     Given a filetype, downloads the highest quality available audio stream for a
@@ -554,7 +568,7 @@ def download_audio(
     youtube.register_on_progress_callback(on_progress)
 
     try:
-        _download(audio, target=target)
+        _download(audio, target=target, continue_download=continue_download)
     except KeyboardInterrupt:
         sys.exit()
 
