@@ -402,13 +402,8 @@ def get_throttling_plan(js: str):
     :returns:
         The full function code for computing the throttling parameter.
     """
-    with open("js.txt", "w") as file:
-        file.write(js)
 
     raw_code = get_throttling_function_code(js)
-
-    with open("raw_code.txt", "w") as file:
-        file.write(raw_code)
 
     transform_start = r"try{"
     plan_regex = re.compile(transform_start)
