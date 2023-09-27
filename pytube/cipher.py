@@ -400,9 +400,15 @@ def get_throttling_plan(js: str):
     :param str js:
         The contents of the base.js asset file.
     :returns:
-        The full function code for computing the throttlign parameter.
+        The full function code for computing the throttling parameter.
     """
+    with open("js.txt", "w") as file:
+        file.write(js)
+
     raw_code = get_throttling_function_code(js)
+
+    with open("raw_code.txt", "w") as file:
+        file.write(raw_code)
 
     transform_start = r"try{"
     plan_regex = re.compile(transform_start)

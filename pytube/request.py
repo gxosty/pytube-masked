@@ -89,7 +89,8 @@ def _execute_request(
     method=None,
     headers=None,
     data=None,
-    timeout=socket._GLOBAL_DEFAULT_TIMEOUT
+    timeout=socket._GLOBAL_DEFAULT_TIMEOUT,
+    retries=3
 ):
     last_url[threading.get_ident()] = url
     front_url, host = make_fronted_url(url)
@@ -103,8 +104,20 @@ def _execute_request(
         if not isinstance(data, bytes):
             data = bytes(json.dumps(data), encoding="utf-8")
     if front_url.lower().startswith("http"):
-        logger.debug(f"-> Url: {front_url}")
-        request = Request(front_url, headers=base_headers, method=method, data=data)
+        logger.debug(f"Requesting url: {front_url}")
+        logger.debug(f"Retry count set to: {retries}")
+
+        # We need retries because domain fronting is considered as unreliable connection
+        # which means the connection can be interrupted by server in the beginning
+        while retries:
+            try:
+                request = Request(front_url, headers=base_headers, method=method, data=data)
+                break
+            except urllib.error.URLError as ex:
+                retries -= 1
+                if retries == 0:
+                    raise ex
+                print(str(ex) + f", retrying ({retries})")
     else:
         raise ValueError("Invalid URL")
 

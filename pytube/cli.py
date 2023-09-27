@@ -220,14 +220,14 @@ def build_playback_report(youtube: YouTube) -> None:
 
 
 def display_progress_bar(
-    bytes_received: int, filesize: int, ch: str = "█", scale: float = 0.55
+    bytes_received: int, filesize: int, ch: str = "█", scale: float = 0.65
 ) -> None:
     """Display a simple, pretty progress bar.
 
     Example:
     ~~~~~~~~
     PSY - GANGNAM STYLE(강남스타일) MV.mp4
-    ↳ |███████████████████████████████████████| 100.0% / 24MB
+    ↳ |████████████████████████████           | 18.0MB / 24.0MB / 75.0%
 
     :param int bytes_received:
         The delta between the total file size (bytes) and bytes already
@@ -247,7 +247,7 @@ def display_progress_bar(
     remaining = max_width - filled
     progress_bar = ch * filled + " " * remaining
     percent = round(100.0 * bytes_received / float(filesize), 1)
-    text = f" ↳ |{progress_bar}| {percent}% / {filesize // 1048576}MB\r"
+    text = f" ↳ |{progress_bar}| {round(bytes_received / 1048576, 2)}MB / {round(filesize / 1048576, 2)}MB / {percent}%\r"
     sys.stdout.write(text)
     sys.stdout.flush()
 
