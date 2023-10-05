@@ -279,6 +279,7 @@ def get_throttling_function_name(js: str) -> str:
         if function_match:
             logger.debug("finished regex search, matched: %s", pattern)
             if len(function_match.groups()) == 1:
+                logger.debug("function that computes throttling parameter: %s", function_match.group(1))
                 return function_match.group(1)
             idx = function_match.group(2)
             if idx:
@@ -291,6 +292,7 @@ def get_throttling_function_name(js: str) -> str:
                 if array:
                     array = array.group(1).strip("[]").split(",")
                     array = [x.strip() for x in array]
+                    logger.debug("function that computes throttling parameter: %s", array[int(idx)])
                     return array[int(idx)]
 
     raise RegexMatchError(
@@ -403,7 +405,13 @@ def get_throttling_plan(js: str):
         The full function code for computing the throttling parameter.
     """
 
+    with open("js.js", "w") as file:
+        file.write(js)
+
     raw_code = get_throttling_function_code(js)
+
+    with open("raw_code.js", "w") as file:
+        file.write(raw_code)
 
     transform_start = r"try{"
     plan_regex = re.compile(transform_start)

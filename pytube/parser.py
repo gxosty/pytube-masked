@@ -84,6 +84,8 @@ def find_object_from_startpoint(html, start_point):
         '[': ']',
         '"': '"',
         "'" : "'",
+
+        "/" : "/"
     }
 
     in_string = None
@@ -107,15 +109,17 @@ def find_object_from_startpoint(html, start_point):
 
         # Strings and regex expressions require special context handling because they can contain
         #  context openers *and* closers
-        if curr_context in ['"', "'"]:
+        if curr_context in ['"', "'", "/"]:
             # If there's a backslash in a string or regex expression, we skip a character
             if curr_char == '\\':
                 i += 2
                 continue
         else:
+            # Non-string contexts are when we need to look for context openers.
             if curr_char in context_closers.keys():
                 # print("In:  {:5} | {}".format(curr_char, html[i - 5 : i + 5]))
-                stack.append(curr_char)
+                if not (curr_char == '/' and last_char not in ['(', ',', '=', ':', '[', '!', '&', '|', '?', '{', '}', ';']):
+                    stack.append(curr_char)
 
         i += 1
 
