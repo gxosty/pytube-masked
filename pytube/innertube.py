@@ -45,10 +45,11 @@ _default_clients = {
         'context': {
             'client': {
                 'clientName': 'ANDROID',
-                'clientVersion': '17.31.35',
+                'clientVersion': '19.08.35',
                 'androidSdkVersion': 30
             }
         },
+        'params': 'CgIQBg',
         'header': {
             'User-Agent': 'com.google.android.youtube/',
         },
@@ -58,7 +59,7 @@ _default_clients = {
         'context': {
             'client': {
                 'clientName': 'IOS',
-                'clientVersion': '17.33.2',
+                'clientVersion': '19.08.35',
                 'deviceModel': 'iPhone14,3'
             }
         },
@@ -85,7 +86,7 @@ _default_clients = {
         'context': {
             'client': {
                 'clientName': 'ANDROID_EMBEDDED_PLAYER',
-                'clientVersion': '17.31.35',
+                'clientVersion': '19.08.35',
                 'clientScreen': 'EMBED',
                 'androidSdkVersion': 30,
             }
@@ -99,7 +100,7 @@ _default_clients = {
         'context': {
             'client': {
                 'clientName': 'IOS_MESSAGES_EXTENSION',
-                'clientVersion': '17.33.2',
+                'clientVersion': '19.08.35',
                 'deviceModel': 'iPhone14,3'
             }
         },
@@ -125,7 +126,7 @@ _default_clients = {
         'context': {
             'client': {
                 'clientName': 'ANDROID_MUSIC',
-                'clientVersion': '5.16.51',
+                'clientVersion': '6.40.52',
                 'androidSdkVersion': 30
             }
         },
@@ -138,7 +139,7 @@ _default_clients = {
         'context': {
             'client': {
                 'clientName': 'IOS_MUSIC',
-                'clientVersion': '5.21',
+                'clientVersion': '6.41',
                 'deviceModel': 'iPhone14,3'
             }
         },
@@ -232,6 +233,7 @@ class InnerTube:
             Allows caching of oauth tokens on the machine.
         """
         self.context = _default_clients[client]['context']
+        self.params = _default_clients[client].get('params', None)
         self.header = _default_clients[client]['header']
         self.api_key = _default_clients[client]['api_key']
         self.access_token = None
@@ -354,7 +356,8 @@ class InnerTube:
     def base_data(self):
         """Return the base json data to transmit to the innertube API."""
         return {
-            'context': self.context
+            'context': self.context,
+            'params': self.params
         }
 
     @property
