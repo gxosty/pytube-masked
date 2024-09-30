@@ -104,7 +104,7 @@ def _execute_request(
         if not isinstance(data, bytes):
             data = bytes(json.dumps(data), encoding="utf-8")
     if front_url.lower().startswith("http"):
-        logger.debug(f"Requesting url: {front_url}")
+        logger.debug(f"Requesting {'GET' if method is None else method}: {front_url}{'' if host is None else ' (Host: {})'.format(host)}")
         logger.debug(f"Retry count set to: {retries}")
 
         # We need retries because domain fronting is considered as unreliable connection
